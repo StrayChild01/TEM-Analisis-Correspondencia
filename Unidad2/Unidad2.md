@@ -1,8 +1,5 @@
 # Unidad 2. Asociación Estadística
-  - [Lectura 1](1%20Asociacion%20estadística.pdf)
-  - [Lectura 2](1%20Asociacion%20estadística.pdf)
-  - [Actividad 1](1%20Asociacion%20estadística.pdf)
-  - [Actividad 2](1%20Asociacion%20estadística.pdf)
-  - [Quiz 1](quiz.md)
-
-<sup>_</sup>
+  - [Lectura 1](2.%20Tablas%20de%20Contingencia%201.pdf)
+  - [Lectura 2](2.%20Tablas%20de%20Contingencia%202.pdf)
+  - [Actividad 1](Actividad%201.pdf)
+  - [Actividad 2](Actividad%202.pdf)
