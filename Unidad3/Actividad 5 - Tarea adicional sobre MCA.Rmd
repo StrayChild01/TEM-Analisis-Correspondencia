@@ -1,0 +1,165 @@
+---
+title: "Tarea adicional sobre MCA"
+author: "Alberto García"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+# Esto es para cuando quiero generar un archivo de word.
+#always_allow_html: yes
+output:
+#word_document: default
+#pdf_document:
+    bookdown::pdf_document2:
+      toc: False
+      fig_caption: yes
+      fig_height: 3.5
+      fig_width: 5
+      keep_tex: yes
+---
+
+```{r configuración, include=F}
+# Estas opciones se aplican a todos los chunks que siguen
+knitr::opts_chunk$set(echo = TRUE, results='asis', message = FALSE)
+bookdown::pdf_document2(toc = FALSE)
+```
+En este ejercicio se tratará de ver más claramente la información arrojada por el MCA, ya que en la tarea sobre los niños enfermos por comida, la visualización era muy difícil.
+
+Habiendo dicho esto, leemos nuestra base de datos.
+```{r leer_excel}
+library(readxl)
+library(kableExtra)
+
+autos_completo<-suppressMessages(read_excel("~/datasets/Autos completo.xlsx", sheet="Sheet1"))
+kable(head(autos_completo, n=5))
+```
+
+Vemos cómo se distribuyen nuestras variables.
+
+```{r graficos_frecuencias}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+grafico_frecuencias<-autos_completo %>%
+  gather() %>% # Convertimos de wide a long.
+  ggplot(aes(x=value, fill=key)) +
+    geom_bar(stat = "count") + # hacemos el gráfico por frecuencia
+    facet_wrap(~ key, scales = "free") + # Graficamos por variable
+    theme(legend.position = "none") + # Eliminamos la leyenda de colores.
+    labs(
+      title = ""
+      ,x = element_blank()
+      ,y = "concentración"
+    )
+```
+\newpage
+```{r graficofreq, echo=F, fig.cap="Frecuencias", fig.width=6, fig.height=4.5}
+grafico_frecuencias
+```
+
+Como podemos apreciar en el gráfico \@ref(fig:graficofreq) hay casi el doble de casados que solteros, hay más autos japoneses que de los demás fabricantes, además que hay un bajo número de autos grandes y que hay pocos autos de trabajo.
+
+Sin embargo, no se alcanza a apreciar bien la distribución de las edades de las personas, por lo cual hacemos de nuevo el gráfico, pero sólo para esa variable (grafico \@ref(fig:graEdades)).
+
+```{r ggplot_edades}
+library(ggplot2)
+grafico_edades <- ggplot(data=autos_completo, aes(x=Edad, fill="#4682B4")) +
+  geom_bar(stat = "count") +
+  theme(legend.position = "none") +
+  labs(title = "")
+```
+\newpage
+```{r graEdades, fig.cap="Edades", fig.show='asis', echo=F}
+grafico_edades
+```
+
+En el gráfico \@ref(fig:graEdades) vemos que la edad está distribuida mayormente entre 20 y 40 años. Siendo una muestra de gente relativamente joven.
+
+A continuación, como sólo queremos saber información sobre los automóviles, calculamos la matriz de Burt de sus características.
+
+```{r tabla_burt}
+library(kableExtra)
+library(dplyr)
+autos_completo %>%
+  # Seleccionamos todas las columnas, menos Edad, Sexo y Edo Civil
+  select(everything(), -c(Edad, Sexo, Edocivil)) %>% 
+  # Convertimos los datos a matriz
+  as.matrix() %>%
+  # Calculamos la matriz de Burt
+  GDAtools::burt() %>%
+  # Formateamos la matriz de Burt.
+  kable() %>%
+  # Le ponemos estilo bonis.
+  kable_styling(bootstrap_options = "striped",
+    full_width = F,
+    position = "left",
+    latex_options="scale_down"
+  )
+```
+
+En la tabla anterior se observa que casi todos los autos americanos son grandes, que una gran parte de los autos compactos son japoneses. También se observa que los autos europeos están distribuidos entre compacto y sedán; pero que sólo aporta 4 autos grandes.
+
+
+Hacemos la prueba de independencia:
+
+```{r indep_variables}
+library(FactoMineR)
+library(dplyr)
+car_autos <- autos_completo %>%
+  select(everything(), -c(Edad, Sexo, Edocivil))
+chi_autos <- catdes(donnee=car_autos, num.var = 1)$test.chi
+chi_autos
+```
+
+De lo anterior vemos que las variables tamaño origen y tipo presentan alguna asociación.
+
+Calculamos el MCA:
+
+```{r mca_autos}
+library(FactoMineR)
+library(kableExtra)
+
+autos_completo_mca <- MCA(autos_completo, quanti.sup=6, quali.sup=c(1,2), graph=F)
+kable(autos_completo_mca$eig[,2:3])
+```
+
+En la tabla anterior se puede ver que se necesitan entre 3 y 4 dimensiones para explicar en mayor parte la varianza del modelo.
+\newpage
+```{r codigo_biplot_d1d2}
+library(factoextra)
+
+grafico4<-fviz_mca_biplot(
+  autos_completo_mca,
+  col.var = "contrib",
+  gradient.cols = c('#FFBD5A', '#F22D0F'),
+  axes = c(1,2),
+  col.ind = "#D3D3D3",
+  shape.ind = 1, 
+  shape.var = 4
+) + labs(title = "")
+```
+
+```{r grD1d2, echo=F, fig.cap="MCA Caracteristicas autos"}
+grafico4
+```
+
+Como en el gráfico \@ref(fig:grD1d2) no se puede apreciar muy bien las características de los automóviles, las graficamos:
+\newpage
+
+```{r codigo_biplot_var}
+library(factoextra)
+grafico2<-fviz_mca_var(
+  autos_completo_mca, col.var = "cos2", gradient.cols = c('#FFBD5A', '#F22D0F'),
+  axes = c(1,2), col.ind = "#D3D3D3", shape.var = 4
+) + labs(title = "")
+```
+
+```{r grVar, echo=F, fig.cap="MCA Variables caracteristicas autos"}
+grafico2
+```
+
+En el gráfico \@ref(fig:grVar) vemos que la primera dimensión separa principalmente el origen del automóvil así como también permite discernir entre el estado civil del comprador.
+
+Para finalizar, se concluye lo siguiente:
+
+  - Los automóviles compactos de la encuesta son japoneses, con algunas características deportivas.
+  - Los automóviles europeos, son principalmente deportivos, compartidos con los fabricantes japoneses.
+  - Los automóviles americanos son los de mayor tamaño.
+  - Los automóviles de trabajo son de diferentes países, pero se ve una asociación entre el tamaño compacto y el mediano.
